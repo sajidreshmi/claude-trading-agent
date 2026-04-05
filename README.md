@@ -85,6 +85,7 @@ This system serves as a live implementation of the exam capabilities. Here is ho
     To ensure integration capabilities, our build and tests execute via lightweight Dockerfiles and fully headless Pytest integrations that safely pass without necessitating runtime LLM access.
 
 ### Domain 4: Prompt Engineering & Structured Output
+*   **Reference Prompt Pattern:** [View Source (X/Twitter)](https://x.com/hooeem/status/2033198345045336559)
 *   **Task 4.1 & 4.2: Explicit Criteria and Few-Shot**  
     Our subagents are deployed with explicitly defined categorical boundaries (e.g., `Confidence Output between 0.0 - 1.0`). We bypass verbose NLP prompting styles for concrete **few-shot structured JSON examples** showing proper ambiguous-case handling directly in the prompt templates.
 *   **Task 4.3 & 4.4: Enforce Structured Output & Retry loops**  
