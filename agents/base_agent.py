@@ -99,6 +99,26 @@ class BaseAgent(ABC):
         """
         return True, ""
 
+    def pre_tool_use(self, tool_name: str, tool_input: dict) -> dict:
+        """
+        PRE-TOOL-USE HOOK — runs AFTER validation but BEFORE tool execution.
+        
+        Override in subagents to modify tool inputs before execution 
+        (e.g., injecting hidden auth tokens, forcing canonical date formats).
+        """
+        return tool_input
+
+    def post_tool_use(self, tool_name: str, tool_input: dict, result: Any) -> Any:
+        """
+        POST-TOOL-USE HOOK — runs AFTER tool execution but BEFORE sending to LLM.
+        
+        Override in subagents to manipulate the output:
+        - Redact Personally Identifiable Information (PII)
+        - Compress extremely large payloads to save token limits
+        - Transform raw SQL objects into readable summaries
+        """
+        return result
+
     def validate_result(self, result: dict) -> tuple[bool, str]:
         """
         POST-COMPLETION HOOK — runs AFTER the agent produces final output.
@@ -234,16 +254,23 @@ class BaseAgent(ABC):
                             
                             # Execute the tool (with HOOKS for safety)
                             try:
+                                # ─── PRE-TOOL USE (Modify Input) ──
+                                modified_input = self.pre_tool_use(block.name, block.input)
+                                
                                 result = self.execute_tool(
-                                    block.name, block.input
+                                    block.name, modified_input
                                 )
+                                
+                                # ─── POST-TOOL USE (Modify Output) ──
+                                modified_result = self.post_tool_use(block.name, modified_input, result)
+                                
                                 tool_results.append(
                                     {
                                         "type": "tool_result",
                                         "tool_use_id": block.id,
-                                        "content": json.dumps(result)
-                                        if not isinstance(result, str)
-                                        else result,
+                                        "content": json.dumps(modified_result)
+                                        if not isinstance(modified_result, str)
+                                        else modified_result,
                                     }
                                 )
                             except Exception as e:
