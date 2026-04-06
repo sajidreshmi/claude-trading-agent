@@ -72,6 +72,13 @@ class BaseAgent(ABC):
         """
         ...
 
+    def get_tool_choice(self) -> dict | None:
+        """
+        Override to force the LLM to use a specific tool.
+        Example: {"type": "tool", "name": "generate_summary"}
+        """
+        return None
+
     @abstractmethod
     def execute_tool(self, tool_name: str, tool_input: dict) -> Any:
         """
@@ -166,13 +173,19 @@ class BaseAgent(ABC):
 
             try:
                 # ─── Step 1: Call Claude ──────────────────────────
-                response = self.client.messages.create(
-                    model=self.model,
-                    max_tokens=4096,
-                    system=self.get_system_prompt(),
-                    tools=self.get_tools(),
-                    messages=messages,
-                )
+                kwargs = {
+                    "model": self.model,
+                    "max_tokens": 4096,
+                    "system": self.get_system_prompt(),
+                    "tools": self.get_tools(),
+                    "messages": messages,
+                }
+                
+                tool_choice = self.get_tool_choice()
+                if tool_choice:
+                    kwargs["tool_choice"] = tool_choice
+                    
+                response = self.client.messages.create(**kwargs)
 
                 # ─── Step 2: Check stop_reason (THE KEY DECISION) ─
                 #

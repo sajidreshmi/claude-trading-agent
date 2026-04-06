@@ -27,13 +27,30 @@ class ErrorCode(str, Enum):
     RISK_LIMIT_EXCEEDED = "RISK_LIMIT_EXCEEDED"
 
 
+class ErrorCategory(str, Enum):
+    """Broad error patterns for top-level system handling."""
+    SYSTEM = "SYSTEM"
+    VALIDATION = "VALIDATION"
+    BUSINESS_LOGIC = "BUSINESS_LOGIC"
+    NETWORK = "NETWORK"
+
 class AgentError(BaseModel):
     """Structured error — the agent ALWAYS knows what went wrong and why."""
     code: ErrorCode
+    error_category: ErrorCategory = Field(default=ErrorCategory.SYSTEM, alias="errorCategory")
     message: str
     details: Optional[dict] = None
-    recoverable: bool = True
+    recoverable: bool = True  # Kept for backward compatibility in Python
+    is_retryable: bool = Field(default=True, alias="isRetryable")
     suggested_action: Optional[str] = None
+
+    def __init__(self, **data):
+        # Sync recoverable and is_retryable
+        if "recoverable" in data and "is_retryable" not in data:
+            data["is_retryable"] = data["recoverable"]
+        elif "is_retryable" in data and "recoverable" not in data:
+            data["recoverable"] = data["is_retryable"]
+        super().__init__(**data)
 
 
 # ─── Agent Communication Schemas ─────────────────────────────────────
